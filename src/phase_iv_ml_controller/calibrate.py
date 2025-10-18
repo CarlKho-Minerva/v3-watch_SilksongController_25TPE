@@ -4,6 +4,9 @@ import time
 import math
 import statistics  # For calculating mean and standard deviation
 import sys  # For command line arguments
+import os
+# Add shared_utils to path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'shared_utils'))
 import network_utils
 
 

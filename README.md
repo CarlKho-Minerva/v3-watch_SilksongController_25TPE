@@ -28,14 +28,24 @@ Building on top of [V2](https://github.com/CarlKho-Minerva/v2_SilksongController
 
 ```bash
 # Start the real-time dashboard (RECOMMENDED)
-cd src
+cd src/phase_ii_manual_collection
 python data_collection_dashboard.py
 
+# Collect gesture data with button UI
+cd src/phase_ii_manual_collection
+python button_data_collector.py
+
 # Verify data quality after collection
-python src/inspect_csv_data.py data/button_collected/*.csv
+cd src/shared_utils
+python inspect_csv_data.py ../../data/phase_ii_button_collected/*.csv
 
 # Test watch connection separately
-python src/test_connection.py
+cd src/shared_utils
+python test_connection.py
+
+# Run ML controller (after training models)
+cd src/phase_iv_ml_controller
+python udp_listener.py
 ```
 
 **Key Features**:
@@ -78,30 +88,52 @@ v3-watch_SilksongController_25TPE/
 ├── Android/                         # Wear OS app (streams sensor data via UDP)
 │   └── app/src/main/java/com/cvk/silksongcontroller/
 │       └── MainActivity.kt          # Sensor streaming + NSD discovery
-├── src/                             # Python ML pipeline
-│   ├── udp_listener.py             # Real-time gesture controller (Phase IV)
-│   ├── continuous_data_collector.py # Voice-labeled data collection (Phase V)
-│   ├── feature_extractor.py        # Feature engineering (~60 features)
-│   ├── data/                       # Training data
-│   │   ├── continuous/             # Voice-labeled sessions
-│   │   └── archive/                # Historical data + scripts
-│   └── models/                     # ML model code
-│       └── cnn_lstm_model.py       # Deep learning architecture
-├── notebooks/                       # Jupyter notebooks for training
-│   ├── watson_Colab_CNN_LSTM_Training.ipynb  # Colab training pipeline
-│   └── archive/                    # Previous training experiments
+├── src/                             # Python ML pipeline (organized by phase)
+│   ├── phase_ii_manual_collection/  # Button-based data collection
+│   │   ├── button_data_collector.py # Simplified one-button UI
+│   │   ├── data_collector.py        # Original guided collector
+│   │   ├── data_collection_dashboard.py # Real-time monitoring
+│   │   └── README.md                # Phase II documentation
+│   ├── phase_iv_ml_controller/      # Real-time ML controller
+│   │   ├── udp_listener.py          # Main ML controller (multi-threaded)
+│   │   ├── udp_listener_v3.py       # CNN-LSTM version
+│   │   ├── calibrate.py             # Threshold calibration
+│   │   └── README.md                # Phase IV documentation
+│   ├── phase_v_voice_collection/    # Voice-labeled data collection
+│   │   ├── continuous_data_collector.py # Natural gameplay recording
+│   │   ├── whisperx_transcribe.py   # Audio transcription
+│   │   ├── align_voice_labels.py    # Label alignment
+│   │   └── README.md                # Phase V documentation
+│   ├── shared_utils/                # Common utilities
+│   │   ├── network_utils.py         # NSD + UDP helpers
+│   │   ├── feature_extractor.py     # Feature engineering
+│   │   ├── test_connection.py       # Connection testing
+│   │   ├── inspect_csv_data.py      # Data validation
+│   │   └── README.md                # Utilities documentation
+│   ├── models/                      # ML model code
+│   │   └── cnn_lstm_model.py        # Deep learning architecture
+│   └── config.json                  # Runtime configuration
+├── data/                            # Training data (organized by phase)
+│   ├── phase_ii_button_collected/   # Button-collected samples
+│   └── phase_v_continuous/          # Voice-labeled sessions
+│       ├── continuous/              # Active sessions
+│       └── archive/                 # Historical data + scripts
+├── notebooks/                       # Training notebooks
+│   ├── Silksong_Complete_Training_Colab.ipynb  # All-in-one training
+│   ├── watson_Colab_CNN_LSTM_Training.ipynb    # Original CNN-LSTM
+│   └── archive/                     # Previous experiments
 ├── models/                          # Trained model artifacts (generated)
-│   ├── README.md                   # Model documentation
-│   └── archive/                    # Previous model versions
+│   ├── README.md                    # Model documentation
+│   └── archive/                     # Previous model versions
 ├── docs/                            # Documentation organized by phase
-│   ├── Phase_II/                   # Manual data collection
-│   ├── Phase_III/                  # SVM training (local)
-│   ├── Phase_IV/                   # Multi-threaded ML controller
-│   ├── Phase_V/                    # Voice-labeled collection + WhisperX
-│   ├── ALTERNATIVE_DATA_COLLECTION_BRAINSTORM.md  # Future improvements
-│   ├── CHRONOLOGICAL_NARRATIVE.md  # Project history
-│   └── archive/                    # Historical docs and troubleshooting
-├── config.json                      # Runtime configuration
+│   ├── Phase_II/                    # Manual data collection
+│   ├── Phase_III/                   # SVM training (local)
+│   ├── Phase_IV/                    # Multi-threaded ML controller
+│   ├── Phase_V/                     # Voice-labeled collection + WhisperX
+│   ├── COLAB_TRAINING_GUIDE.md      # Google Colab training guide
+│   ├── CHRONOLOGICAL_NARRATIVE.md   # Project history
+│   ├── SESSION_BUTTON_PIVOT_NARRATIVE.md # Recent improvements
+│   └── archive/                     # Historical docs
 └── requirements.txt                 # Python dependencies
 ```
 
@@ -127,8 +159,15 @@ pip install -r requirements.txt
 
 # 3. Build Android app (see Android Studio instructions in installer/INSTALLATION_GUIDE.md)
 
-# 4. Run the controller
-cd src
+# 4. Collect training data
+cd src/phase_ii_manual_collection
+python button_data_collector.py
+
+# 5. Train model on Google Colab (see docs/COLAB_TRAINING_GUIDE.md)
+# Upload data to Google Drive and use notebooks/Silksong_Complete_Training_Colab.ipynb
+
+# 6. Run the controller with trained models
+cd src/phase_iv_ml_controller
 python udp_listener.py
 ```
 
@@ -138,45 +177,60 @@ The watch app will automatically discover your computer via NSD - no manual IP c
 
 This project evolved through multiple phases, demonstrating different approaches to gesture recognition:
 
-### Phase II: Manual Data Collection *(Archived)*
-Guided recording system with predefined physical stances and gesture prompts. Provided foundational understanding of IMU data structure.
+### Phase II: Manual Data Collection ✅
+Button-based and guided recording system for collecting labeled gesture samples.
 
-**Status**: Superseded by Phase V voice-labeled approach  
-**Location**: `docs/Phase_II/` and `docs/archive/`
+**Tools**: 
+- `src/phase_ii_manual_collection/button_data_collector.py` - Simplified one-button UI
+- `src/phase_ii_manual_collection/data_collection_dashboard.py` - Real-time monitoring
+- `src/phase_ii_manual_collection/data_collector.py` - Original guided collector
 
-### Phase III: SVM Classifier *(Archived)*
+**Output**: CSV files in `data/phase_ii_button_collected/`  
+**Documentation**: `src/phase_ii_manual_collection/README.md`
+
+### Phase III: SVM Classifier ✅
 Traditional ML pipeline using hand-engineered features (~60 features from time/frequency domains) with SVM classification.
 
-**Notebook**: `notebooks/archive/CS156_Silksong_Watch.ipynb`  
+**Training**: Google Colab notebook with SVM option  
+**Notebook**: `notebooks/Silksong_Complete_Training_Colab.ipynb`  
 **Features**: Time-domain stats, FFT features, magnitude calculations  
-**Performance**: ~70-75% accuracy on test set  
-**Location**: `docs/Phase_III/`
+**Performance**: 85-95% accuracy on test set  
+**Guide**: `docs/COLAB_TRAINING_GUIDE.md`
 
-### Phase IV: Multi-Threaded Controller ✅ **(Current)**
+### Phase IV: Multi-Threaded Controller ✅ **(Current Production)**
 Real-time ML deployment with decoupled architecture for low-latency performance.
 
 **Architecture**: Collector → Predictor → Actor (three threads with queues)  
 **Latency**: <500ms using 0.3s micro-windows  
 **Confidence Gating**: 5 consecutive predictions for state changes  
-**Code**: `src/udp_listener.py`
+**Code**: `src/phase_iv_ml_controller/udp_listener.py`
 
-See `docs/Phase_IV/README.md` for architecture details.
+See `src/phase_iv_ml_controller/README.md` for architecture details.
 
-### Phase V: Voice-Labeled Data Collection ✅ **(Current)**
+### Phase V: Voice-Labeled Data Collection ✅ **(Advanced)**
 Natural gameplay recording with voice commands, retrospectively processed using WhisperX for word-level timestamp alignment.
+
+**Tools**:
+- `src/phase_v_voice_collection/continuous_data_collector.py` - Natural gameplay recording
+- `src/phase_v_voice_collection/whisperx_transcribe.py` - Audio transcription
+- `src/phase_v_voice_collection/align_voice_labels.py` - Label alignment
 
 **Workflow**:
 ```bash
 # 1. Record session (natural gameplay + voice labels)
-python src/continuous_data_collector.py --duration 600 --session gameplay_01
+cd src/phase_v_voice_collection
+python continuous_data_collector.py --duration 600 --session gameplay_01
 
 # 2. Post-process with WhisperX
-./process_transcripts.sh YYYYMMDD_HHMMSS_gameplay_01
+python whisperx_transcribe.py --audio ../../data/phase_v_continuous/SESSION/audio_16k.wav
+
+# 3. Align labels
+python align_voice_labels.py --session_dir ../../data/phase_v_continuous/SESSION/
 ```
 
-**Advantages**: Hands-free, natural motion, word-level timestamps  
-**Challenges**: Voice-motion coordination, noisy labels (see brainstorming doc)  
-**Location**: `docs/Phase_V/`
+**Advantages**: Hands-free, natural motion, word-level timestamps, captures transitions  
+**Use Case**: Training CNN-LSTM models with large datasets  
+**Documentation**: `src/phase_v_voice_collection/README.md`
 
 ### Phase VI: Button Data Collection *(Proposed)*
 Alternative data collection approach using button-grid Android app for more controlled, precise labeling.

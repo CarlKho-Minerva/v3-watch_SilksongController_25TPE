@@ -6,6 +6,10 @@ import threading
 from collections import deque
 from queue import Queue, Empty
 from pynput.keyboard import Controller, Key
+import sys
+import os
+# Add shared_utils to path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'shared_utils'))
 import network_utils
 from zeroconf import ServiceInfo, Zeroconf
 import joblib

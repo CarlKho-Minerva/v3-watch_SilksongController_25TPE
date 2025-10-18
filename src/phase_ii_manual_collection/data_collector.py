@@ -41,6 +41,9 @@ import os
 import argparse
 from datetime import datetime
 from collections import deque
+import sys
+# Add shared_utils to path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'shared_utils'))
 import network_utils
 
 
